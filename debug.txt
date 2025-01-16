@@ -1,0 +1,24 @@
+2021-04-05-22-41
+save_desc_INI() takes 0 positional arguments but 1 was given
+2021-04-05-22-57
+'NoneType' object has no attribute 'extend'
+2021-04-05-22-59
+'NoneType' object has no attribute 'extend'
+2021-04-05-23-02
+'NoneType' object has no attribute 'extend'
+2021-04-05-23-02
+'NoneType' object has no attribute 'extend'
+2021-04-05-23-07
+'name'
+2021-04-05-23-09
+'name'
+2021-04-05-23-10
+'name'
+2021-04-05-23-11
+'name'
+2021-04-05-23-13
+'name'
+2021-04-05-23-17
+'name'
+2021-04-05-23-17
+'name'
