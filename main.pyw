@@ -8,10 +8,7 @@ from threading import Thread
 from subprocess import Popen
 from myTools import *
 from LinkNode import linkNode
-from baiduFanyi import baidu_Translate
 from ra2RulesParser import rulesParser
-from appInfo import send_to_server, user_hash
-from appInfo import get_now_timestamp
 import webbrowser
 import sys
 import os
@@ -33,9 +30,6 @@ def get_OptionCategory():
     }
     return result
 
-
-changed_data = []
-changed_temp = {}
 
 my_config = rulesParser('Resources/Config.ini')
 optionCategoryDict = get_OptionCategory()
@@ -95,10 +89,6 @@ class rulesmdEditor(Ui_MainWindow, QtWidgets.QMainWindow, myIniClass):
         self.table_index = -1
         self.table_widgets = {}
         self.tree_find_list = []
-        self.myTranslator = None
-        self.fanyiText = ''
-
-        Thread(target=self.init_translator_TD).start()
         self.TD_ready = False
 
         self.linkNode = linkNode()
@@ -118,14 +108,6 @@ class rulesmdEditor(Ui_MainWindow, QtWidgets.QMainWindow, myIniClass):
         self.init_widgets()
         self.init_connect()
         self.set_icons()
-
-    def init_translator_TD(self):
-        try:
-            self.myTranslator = baidu_Translate()
-            self.rulesGlobal_win.myTranslator = self.myTranslator
-        except:
-            pass
-            # print('翻译初始化失败，可能是没有网络连接')
 
     def setting_config(self, init=False):
         print('初始化设置文件')
@@ -615,7 +597,6 @@ class rulesmdEditor(Ui_MainWindow, QtWidgets.QMainWindow, myIniClass):
             self.tree_add_item(data)
         else:
             self.tree_add_item(data, True)
-        changed_data.append('{0}|新增单位：{1}，描述：{2}'.format(get_now_timestamp(), section_name, nameDesc))
 
     def dict_update(self, type_name, section_name, nameDesc):  # todo 更新菜单字典
         name = typesDict[type_name]
@@ -645,7 +626,6 @@ class rulesmdEditor(Ui_MainWindow, QtWidgets.QMainWindow, myIniClass):
                 self.rulesmdINI.remove_section(section)
             parent = item.parent()
             parent.removeChild(item)
-            changed_data.append('{0}|移除单位：{1}，描述：{2}'.format(get_now_timestamp(), section, nameDesc))
 
     def tree_menu(self, pos):  # todo tree右键菜单
         if self.rulesmdINI:
@@ -1009,14 +989,6 @@ class rulesmdEditor(Ui_MainWindow, QtWidgets.QMainWindow, myIniClass):
                     boolText = ['yes', 'no'] if value in 'yes,no' else ['true', 'false']
                     value = boolText[0] if info[1]() else boolText[1]
                 self.current_section[i] = [op[0], value]
-                changed_temp[self.current_section_name + "_" + op[0]] = '{0}|修改单位：{1}{2}，键名：{3}{4}，值变化：{5}>{6}'.format(
-                    get_now_timestamp(),
-                    self.current_section_name,
-                    self.get_UIName_desc(self.current_section_name),
-                    op[0],
-                    self.get_option_desc(op[0]),
-                    op[1],
-                    value)
                 break
 
     def table_text_changed(self):  # todo 表格内容更改
@@ -1033,15 +1005,6 @@ class rulesmdEditor(Ui_MainWindow, QtWidgets.QMainWindow, myIniClass):
                 if new_value:
                     value = op[1]
                     if new_value != value:
-                        changed_temp[
-                            self.current_section_name + "_" + op[0]] = '{0}|修改单位：{1}{2}，键名：{3}{4}，值变化：{5}>{6}'.format(
-                            get_now_timestamp(),
-                            self.current_section_name,
-                            self.get_UIName_desc(self.current_section_name),
-                            option,
-                            desc,
-                            value,
-                            new_value)
                         self.current_section[i] = [op[0], new_value]
 
     # todo 删除数据
@@ -1056,12 +1019,6 @@ class rulesmdEditor(Ui_MainWindow, QtWidgets.QMainWindow, myIniClass):
                     del_items.append(self.current_section.pop(i))
                 except:
                     pass
-
-            changed_temp[self.current_section_name] = '{0}|修改单位:{1}{2},删除数据{3}'.format(
-                get_now_timestamp(),
-                self.current_section_name,
-                self.get_UIName_desc(self.current_section_name),
-                del_items)
 
             self.update_data()
             self.table_set_Items()
@@ -1082,12 +1039,6 @@ class rulesmdEditor(Ui_MainWindow, QtWidgets.QMainWindow, myIniClass):
         self.table_set_Items()
         self.table_options.selectRow(select_index)
         self.table_options.setFocus()
-
-        changed_temp[self.current_section_name] = '{0}|修改单位:{1}{2},插入数据{3}'.format(
-            get_now_timestamp(),
-            self.current_section_name,
-            self.get_UIName_desc(self.current_section_name),
-            items)
 
     def table_get_selection(self):
         index_list = [index.row() for index in self.table_options.selectedIndexes()]
@@ -1123,8 +1074,6 @@ class rulesmdEditor(Ui_MainWindow, QtWidgets.QMainWindow, myIniClass):
                             re.findall("</td></tr></table><br clear=\"all\" /><br />\n<p>(.*?)</p>", response.text,
                                        re.S)[0]
                         text = re.sub('<.*?>', '', text)
-                        if self.myTranslator != None:
-                            text = self.myTranslator.fanyi(text)
                         self.textBrowser_help.setText(text)
                     except:
                         pass
@@ -1194,16 +1143,6 @@ class rulesmdEditor(Ui_MainWindow, QtWidgets.QMainWindow, myIniClass):
                         menu_items.append(item)
                         menu.addAction(menu_items[-1])
 
-            self.fanyiText = ''
-            if self.myTranslator != None:
-                if len(index_list) == 1:
-                    menu.addSeparator()
-                    self.fanyiText = self.current_section[index_list[0]][0]
-                    item = QtWidgets.QAction('翻译此项到描述：{0}'.format(self.fanyiText))
-                    item.setIcon(self.desc_icon)
-                    menu_items.append(item)
-                    menu.addAction(menu_items[-1])
-
             action = menu.exec_(self.table_options.mapToGlobal(pos))
             if action != None:
                 if '在此插入新项' in action.text():
@@ -1237,12 +1176,6 @@ class rulesmdEditor(Ui_MainWindow, QtWidgets.QMainWindow, myIniClass):
                 elif action.text() in self.quote_dict.keys():
                     section = self.quote_dict[action.text()]
                     self.tree_find_line(section)
-
-                elif '翻译此项到描述' in action.text():
-                    text = myTools.space_text(self.fanyiText)
-                    fanyi = self.myTranslator.fanyi(text).replace(' ', '')
-                    self.set_user_option_desc(self.fanyiText, fanyi)
-                    self.table_set_Items()
 
                 elif '跳转到此单位' in action.text():
                     self.global_find_items(jump_value)
@@ -1518,12 +1451,7 @@ class rulesmdEditor(Ui_MainWindow, QtWidgets.QMainWindow, myIniClass):
                     if my_config.getboolean(cfgName, 'autoSaveRules'):
                         self.btn_save_rules()
                 my_config.write_file()
-                if self.myTranslator != None:
-                    self.myTranslator.close()
                 self.rulesGlobal_win.close()
-
-                data = get_changed_data()
-                if data: send_to_server({'text': data, 'user': user_hash}, code='log')
 
                 a0.accept()
             else:
@@ -1532,16 +1460,7 @@ class rulesmdEditor(Ui_MainWindow, QtWidgets.QMainWindow, myIniClass):
             a0.accept()
 
 
-def get_changed_data():
-    data = changed_data
-    for item in changed_temp.items():
-        data.append(item[1])
-    data.sort(key=lambda t: t.split("|")[0])
-    return data
-
-
 if __name__ == '__main__':
-    send_to_server({'start': user_hash})
     os.chdir(os.path.split(sys.argv[0])[0])
     translator = QtCore.QTranslator()
     translator.load('./Resources/qt_zh_CN.qm')

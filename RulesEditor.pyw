@@ -8,7 +8,6 @@ from threading import Thread
 from subprocess import Popen
 from myTools import *
 from LinkNode import linkNode
-from baiduFanyi import baidu_Translate
 from ra2RulesParser import rulesParser
 from appInfo import send_to_server, user_hash
 from appInfo import get_now_timestamp
@@ -95,10 +94,6 @@ class rulesmdEditor(Ui_MainWindow, QtWidgets.QMainWindow, myIniClass):
         self.table_index = -1
         self.table_widgets = {}
         self.tree_find_list = []
-        self.myTranslator = None
-        self.fanyiText = ''
-
-        Thread(target=self.init_translator_TD).start()
         self.TD_ready = False
 
         self.linkNode = linkNode()
@@ -118,14 +113,6 @@ class rulesmdEditor(Ui_MainWindow, QtWidgets.QMainWindow, myIniClass):
         self.init_widgets()
         self.init_connect()
         self.set_icons()
-
-    def init_translator_TD(self):
-        try:
-            self.myTranslator = baidu_Translate()
-            self.rulesGlobal_win.myTranslator = self.myTranslator
-        except:
-            pass
-            # print('翻译初始化失败，可能是没有网络连接')
 
     def setting_config(self, init=False):
         print('初始化设置文件')
@@ -1123,8 +1110,6 @@ class rulesmdEditor(Ui_MainWindow, QtWidgets.QMainWindow, myIniClass):
                             re.findall("</td></tr></table><br clear=\"all\" /><br />\n<p>(.*?)</p>", response.text,
                                        re.S)[0]
                         text = re.sub('<.*?>', '', text)
-                        if self.myTranslator != None:
-                            text = self.myTranslator.fanyi(text)
                         self.textBrowser_help.setText(text)
                     except:
                         pass
@@ -1194,16 +1179,6 @@ class rulesmdEditor(Ui_MainWindow, QtWidgets.QMainWindow, myIniClass):
                         menu_items.append(item)
                         menu.addAction(menu_items[-1])
 
-            self.fanyiText = ''
-            if self.myTranslator != None:
-                if len(index_list) == 1:
-                    menu.addSeparator()
-                    self.fanyiText = self.current_section[index_list[0]][0]
-                    item = QtWidgets.QAction('翻译此项到描述：{0}'.format(self.fanyiText))
-                    item.setIcon(self.desc_icon)
-                    menu_items.append(item)
-                    menu.addAction(menu_items[-1])
-
             action = menu.exec_(self.table_options.mapToGlobal(pos))
             if action != None:
                 if '在此插入新项' in action.text():
@@ -1237,12 +1212,6 @@ class rulesmdEditor(Ui_MainWindow, QtWidgets.QMainWindow, myIniClass):
                 elif action.text() in self.quote_dict.keys():
                     section = self.quote_dict[action.text()]
                     self.tree_find_line(section)
-
-                elif '翻译此项到描述' in action.text():
-                    text = myTools.space_text(self.fanyiText)
-                    fanyi = self.myTranslator.fanyi(text).replace(' ', '')
-                    self.set_user_option_desc(self.fanyiText, fanyi)
-                    self.table_set_Items()
 
                 elif '跳转到此单位' in action.text():
                     self.global_find_items(jump_value)
@@ -1518,8 +1487,6 @@ class rulesmdEditor(Ui_MainWindow, QtWidgets.QMainWindow, myIniClass):
                     if my_config.getboolean(cfgName, 'autoSaveRules'):
                         self.btn_save_rules()
                 my_config.write_file()
-                if self.myTranslator != None:
-                    self.myTranslator.close()
                 self.rulesGlobal_win.close()
 
                 data = get_changed_data()
@@ -1549,7 +1516,7 @@ if __name__ == '__main__':
     app.installTranslator(translator)
     app.setStyle('Fusion')
     gui = rulesmdEditor()
-    gui.label_about.setText('Teri 2023-01-10 22:56')
+    gui.label_about.setText('Teri 2025-03-13 10:16')
     help_info = '''
     <p style=\"font-weight:bold; color:#00b0ff;font-size:15px;\">使用说明：</p>
     1. 打开规则：浏览文件夹，并打开一个rulesmd.ini文件以开始编辑<br>
